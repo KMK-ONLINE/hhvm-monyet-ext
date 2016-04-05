@@ -40,18 +40,17 @@ static void dump_compact_arg(const Variant& var, Array& ary) {
   }
 }
 
-static void dump_compact(const Variant &varname, const Array& args)
+String dump_compact(const Variant &varname, const Array& args)
 {
   Array ary;
-  String s;
+
   dump_compact_arg(varname, ary);
   dump_compact_arg(args, ary);
-  s = HHVM_FN(implode)(s_comma, ary);
 
-  Logger::Info("compact(%s)", s.c_str());
+  return HHVM_FN(implode)(s_comma, ary);
 }
 
-static void dump_back_trace() {
+String dump_back_trace() {
   StringBuffer buf;
   Array bt = HHVM_FN(debug_backtrace)(k_DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
 
@@ -59,15 +58,13 @@ static void dump_back_trace() {
     Array frame = it.second().toArray();
 
     if (frame.exists(s_file)) {
-      buf.append("[");
       buf.append(frame->get(s_file).toString());
       buf.append(':');
       buf.append(frame->get(s_line).toString());
-      buf.append(']');
     }
   }
 
-  Logger::Info("%s", buf.detach().c_str());
+  return buf.detach();
 }
 
 Array HHVM_FUNCTION(my_compact,
@@ -75,9 +72,7 @@ Array HHVM_FUNCTION(my_compact,
                     const Array& args /* = null array */) {
   Array ret = HHVM_FN(compact)(varname, args);
 
-  dump_compact(varname, args);
-
-  dump_back_trace();
+  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), dump_back_trace().c_str());
 
   return ret;
 }
@@ -87,9 +82,7 @@ Array HHVM_FUNCTION(my_compact_sl,
                     const Array& args /* = null array */) {
   Array ret = HHVM_FN(__SystemLib_compact_sl)(varname, args);
 
-  dump_compact(varname, args);
-
-  dump_back_trace();
+  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), dump_back_trace().c_str());
 
   return ret;
 }

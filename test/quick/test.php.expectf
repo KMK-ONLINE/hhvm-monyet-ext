@@ -1,8 +1,7 @@
 monyet=1
 my_compact=1
 compact intercepted!
-compact('a', 'b')
-[%s/test.php:11]
+compact('a', 'b') in [%s/test.php:11]
 Array
 (
     [a] => 1
