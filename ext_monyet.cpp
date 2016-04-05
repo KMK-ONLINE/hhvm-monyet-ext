@@ -8,6 +8,7 @@
 #include "hphp/runtime/base/intercept.h"
 #include "hphp/runtime/base/php-globals.h"
 #include "hphp/runtime/base/hphp-system.h"
+#include "hphp/runtime/ext/std/ext_std_errorfunc.h"
 #include "hphp/runtime/ext/string/ext_string.h"
 #include "hphp/util/logger.h"
 
@@ -18,43 +19,87 @@ namespace HPHP {
 
 const StaticString
     s_compact("compact"),
-    s_compact_sl("__SystemLib\\compact_sl"),
     s_obs_compact("obs_compact"),
-    s_my_compact("my_compact");
+    s_my_compact("my_compact"),
+    s_compact_sl("__SystemLib\\compact_sl"),
+    s_my_compact_sl("my_compact_sl"),
+    s_obs_compact_sl("obs_compact_sl"),
+    s_comma(", "),
+    s_squote("'"),
+    s_file("file"),
+    s_line("line");
 
-static void my_compact(VarEnv* v, Array &ret, const Variant& var) {
+static void dump_compact_arg(const Variant& var, Array& ary) {
   if (var.isArray()) {
     for (ArrayIter iter(var.getArrayData()); iter; ++iter) {
-      my_compact(v, ret, iter.second());
+      dump_compact_arg(iter.second(), ary);
     }
   } else {
-    String varname = var.toString();
-    Logger::Info("  '%s'", varname.c_str());
-    if (!varname.empty() && v->lookup(varname.get()) != NULL) {
-      ret.set(varname, *reinterpret_cast<Variant*>(v->lookup(varname.get())));
+    String varname = s_squote + var.toString() + s_squote;
+    ary.append( varname );
+  }
+}
+
+static void dump_compact(const Variant &varname, const Array& args)
+{
+  Array ary;
+  String s;
+  dump_compact_arg(varname, ary);
+  dump_compact_arg(args, ary);
+  s = HHVM_FN(implode)(s_comma, ary);
+
+  Logger::Info("compact(%s)", s.c_str());
+}
+
+static void dump_back_trace() {
+  StringBuffer buf;
+  Array bt = HHVM_FN(debug_backtrace)(k_DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
+
+  for (ArrayIter it = bt.begin(); !it.end(); it.next()) {
+    Array frame = it.second().toArray();
+
+    if (frame.exists(s_file)) {
+      buf.append("[");
+      buf.append(frame->get(s_file).toString());
+      buf.append(':');
+      buf.append(frame->get(s_line).toString());
+      buf.append(']');
     }
   }
+
+  Logger::Info("%s", buf.detach().c_str());
 }
 
 Array HHVM_FUNCTION(my_compact,
                     const Variant& varname,
                     const Array& args /* = null array */) {
-  raise_disallowed_dynamic_call("compact should not be called dynamically");
-  Logger::Info("my_compact(");
-  Array ret = Array::attach(PackedArray::MakeReserve(args.size() + 1));
-  VarEnv* v = g_context->getOrCreateVarEnv();
-  if (v) {
-    my_compact(v, ret, varname);
-    my_compact(v, ret, args);
-  }
-  Logger::Info(")");
+  Array ret = HHVM_FN(compact)(varname, args);
+
+  dump_compact(varname, args);
+
+  dump_back_trace();
+
+  return ret;
+}
+
+Array HHVM_FUNCTION(my_compact_sl,
+                    const Variant& varname,
+                    const Array& args /* = null array */) {
+  Array ret = HHVM_FN(__SystemLib_compact_sl)(varname, args);
+
+  dump_compact(varname, args);
+
+  dump_back_trace();
+
   return ret;
 }
 
 void HHVM_FUNCTION(compact_intercept) {
     Logger::Info("compact intercepted!");
-    rename_function(s_compact_sl, s_obs_compact);
-    rename_function(s_my_compact, s_compact_sl);
+    rename_function(s_compact, s_obs_compact);
+    rename_function(s_my_compact, s_compact);
+    rename_function(s_compact_sl, s_obs_compact_sl);
+    rename_function(s_my_compact_sl, s_compact_sl);
 }
 
 class MonyetExtension : public Extension {
@@ -65,6 +110,7 @@ class MonyetExtension : public Extension {
 
     HHVM_FE(compact_intercept);
     HHVM_FE(my_compact);
+    HHVM_FE(my_compact_sl);
 
     loadSystemlib();
   }
