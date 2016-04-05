@@ -1,0 +1,12 @@
+monyet=1
+my_compact=1
+compact intercepted!
+my_compact(
+  'a'
+  'b'
+)
+Array
+(
+    [a] => 1
+    [b] => 2
+)
