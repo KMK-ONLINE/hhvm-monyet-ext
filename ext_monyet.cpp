@@ -10,6 +10,7 @@
 #include "hphp/runtime/base/hphp-system.h"
 #include "hphp/runtime/ext/std/ext_std_errorfunc.h"
 #include "hphp/runtime/ext/string/ext_string.h"
+#include "hphp/runtime/ext/std/ext_std_variable.h"
 #include "hphp/util/logger.h"
 
 #include <vector>
@@ -21,13 +22,34 @@ const StaticString
     s_compact("compact"),
     s_obs_compact("obs_compact"),
     s_my_compact("my_compact"),
-    s_compact_sl("__SystemLib\\compact_sl"),
+
+    s_compact_sl("__SystemLib\\compact_sl"), // Native
     s_my_compact_sl("my_compact_sl"),
     s_obs_compact_sl("obs_compact_sl"),
+
+    s_extract("extract"),
+    s_my_extract("my_extract"),
+    s_obs_extract("obs_extract"),
+
+    s_extract_sl("__SystemLib\\extract"), // Native
+    s_my_extract_sl("my_extract_sl"),
+    s_obs_extract_sl("obs_extract_sl"),
+
     s_comma(", "),
     s_squote("'"),
     s_file("file"),
     s_line("line");
+
+
+
+int64_t HHVM_FUNCTION(extract, VRefParam vref_array,
+                      int64_t extract_type /* = EXTR_OVERWRITE */,
+                      const String& prefix /* = "" */);
+
+int64_t HHVM_FUNCTION(SystemLib_extract,
+                      VRefParam vref_array,
+                      int64_t extract_type = EXTR_OVERWRITE,
+                      const String& prefix = "");
 
 static void dump_compact_arg(const Variant& var, Array& ary) {
   if (var.isArray()) {
@@ -95,6 +117,33 @@ void HHVM_FUNCTION(compact_intercept) {
     rename_function(s_my_compact_sl, s_compact_sl);
 }
 
+int64_t HHVM_FUNCTION(my_extract,
+                      VRefParam vref_array,
+                      int64_t extract_type /* = EXTR_OVERWRITE */,
+                      const String& prefix /* = "" */) {
+  int64_t ret = HHVM_FN(extract)(vref_array, extract_type, prefix);
+
+  return ret;
+}
+
+int64_t HHVM_FUNCTION(my_extract_sl,
+                      VRefParam vref_array,
+                      int64_t extract_type = EXTR_OVERWRITE,
+                      const String& prefix = "") {
+
+  int64_t ret = HHVM_FN(SystemLib_extract)(vref_array, extract_type, prefix);
+
+  return ret;
+}
+
+void HHVM_FUNCTION(extract_intercept) {
+    Logger::Info("extract intercept!");
+    rename_function(s_extract, s_obs_extract);
+    rename_function(s_my_extract, s_extract);
+    rename_function(s_extract_sl, s_obs_extract_sl);
+    rename_function(s_my_extract_sl, s_extract_sl);
+}
+
 class MonyetExtension : public Extension {
  public:
   MonyetExtension(): Extension("monyet", "1.0") {}
@@ -104,6 +153,10 @@ class MonyetExtension : public Extension {
     HHVM_FE(compact_intercept);
     HHVM_FE(my_compact);
     HHVM_FE(my_compact_sl);
+
+    HHVM_FE(extract_intercept);
+    HHVM_FE(my_extract);
+    HHVM_FE(my_extract_sl);
 
     loadSystemlib();
   }

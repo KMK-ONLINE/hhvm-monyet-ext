@@ -1,0 +1,9 @@
+monyet=1
+my_extract=1
+isset($a) = no
+isset($b) = no
+extract intercept!
+isset($a) = yes
+isset($b) = yes
+$a = 1
+$b = 2
