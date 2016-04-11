@@ -35,6 +35,14 @@ const StaticString
     s_my_extract_sl("my_extract_sl"),
     s_obs_extract_sl("obs_extract_sl"),
 
+    s_get_defined_vars("get_defined_vars"),
+    s_my_get_defined_vars("my_get_defined_vars"),
+    s_obs_get_defined_vars("obs_get_defined_vars"),
+
+    s_get_defined_vars_sl("__SystemLib\\get_defined_vars"), // Native
+    s_my_get_defined_vars_sl("my_get_defined_vars_sl"),
+    s_obs_get_defined_vars_sl("obs_get_defined_vars_sl"),
+
     s_comma(", "),
     s_squote("'"),
     s_file("file"),
@@ -53,6 +61,11 @@ int64_t HHVM_FUNCTION(SystemLib_extract,
                       int64_t extract_type = EXTR_OVERWRITE,
                       const String& prefix = "");
 
+Array HHVM_FUNCTION(get_defined_vars);
+
+Array HHVM_FUNCTION(SystemLib_get_defined_vars);
+
+//////
 static void dump_compact_arg(const Variant& var, Array& ary) {
   if (var.isArray()) {
     for (ArrayIter iter(var.getArrayData()); iter; ++iter) {
@@ -168,6 +181,41 @@ void HHVM_FUNCTION(extract_intercept) {
     rename_function(s_my_extract_sl, s_extract_sl);
 }
 
+String dump_get_defined_vars(const Array& vars) {
+  Array ary;
+
+  for (ArrayIter iter(vars); iter; ++iter) {
+    String varname = s_squote + iter.first().toString() + s_squote;
+    ary.append( varname );
+  }
+
+  return HHVM_FN(implode)(s_comma, ary);
+}
+
+Array HHVM_FUNCTION(my_get_defined_vars) {
+  Array vars = HHVM_FN(get_defined_vars)();
+
+  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), dump_back_trace().c_str());
+
+  return vars;
+}
+
+Array HHVM_FUNCTION(my_get_defined_vars_sl) {
+  Array vars = HHVM_FN(SystemLib_get_defined_vars)();
+
+  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), dump_back_trace().c_str());
+
+  return vars;
+}
+
+void HHVM_FUNCTION(get_defined_vars_intercept) {
+    Logger::Info("get_defined_vars intercepted!");
+    rename_function(s_get_defined_vars, s_obs_get_defined_vars);
+    rename_function(s_my_get_defined_vars, s_get_defined_vars);
+    rename_function(s_get_defined_vars_sl, s_obs_get_defined_vars_sl);
+    rename_function(s_my_get_defined_vars_sl, s_get_defined_vars_sl);
+}
+
 class MonyetExtension : public Extension {
  public:
   MonyetExtension(): Extension("monyet", "1.0") {}
@@ -181,6 +229,10 @@ class MonyetExtension : public Extension {
     HHVM_FE(extract_intercept);
     HHVM_FE(my_extract);
     HHVM_FE(my_extract_sl);
+
+    HHVM_FE(get_defined_vars_intercept);
+    HHVM_FE(my_get_defined_vars);
+    HHVM_FE(my_get_defined_vars_sl);
 
     loadSystemlib();
   }

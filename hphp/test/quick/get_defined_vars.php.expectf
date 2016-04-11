@@ -1,0 +1,10 @@
+monyet=1
+my_get_defined_vars=1
+get_defined_vars intercepted!
+get_defined_vars('x', 'y') in [%s/get_defined_vars.php:12]
+Array
+(
+    [x] => x
+    [y] => y
+)
+

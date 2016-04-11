@@ -21,3 +21,12 @@ function my_extract(mixed &$var_array,
 function my_extract_sl(mixed &$var_array,
                    int $extract_type = EXTR_OVERWRITE,
                    string $prefix = ""): int;
+
+<<__Native>>
+function get_defined_vars_intercept(): void;
+
+<<__Native>>
+function my_get_defined_vars(): array;
+
+<<__Native>>
+function my_get_defined_vars_sl(): array;
