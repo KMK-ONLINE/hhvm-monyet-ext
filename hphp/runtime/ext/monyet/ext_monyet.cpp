@@ -38,10 +38,12 @@ const StaticString
     s_comma(", "),
     s_squote("'"),
     s_file("file"),
-    s_line("line");
+    s_line("line"),
+    s_qmark("?");
 
 
-
+// declaration of:
+// hphp/runtime/ext/std/ext_std_variable.cpp
 int64_t HHVM_FUNCTION(extract, VRefParam vref_array,
                       int64_t extract_type /* = EXTR_OVERWRITE */,
                       const String& prefix /* = "" */);
@@ -68,6 +70,24 @@ String dump_compact(const Variant &varname, const Array& args)
 
   dump_compact_arg(varname, ary);
   dump_compact_arg(args, ary);
+
+  return HHVM_FN(implode)(s_comma, ary);
+}
+
+String dump_extract(VRefParam vref_array) {
+  auto arr_tv = vref_array.wrapped().asTypedValue();
+  if (arr_tv->m_type == KindOfRef) {
+    arr_tv = arr_tv->m_data.pref->tv();
+  }
+  if (!isArrayType(arr_tv->m_type)) return s_qmark;
+
+  auto& carr = tvAsCVarRef(arr_tv).asCArrRef();
+  Array ary;
+
+  for (ArrayIter iter(carr); iter; ++iter) {
+    String varname = s_squote + iter.first().toString() + s_squote;
+    ary.append( varname );
+  }
 
   return HHVM_FN(implode)(s_comma, ary);
 }
@@ -123,6 +143,8 @@ int64_t HHVM_FUNCTION(my_extract,
                       const String& prefix /* = "" */) {
   int64_t ret = HHVM_FN(extract)(vref_array, extract_type, prefix);
 
+  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), dump_back_trace().c_str());
+
   return ret;
 }
 
@@ -132,6 +154,8 @@ int64_t HHVM_FUNCTION(my_extract_sl,
                       const String& prefix = "") {
 
   int64_t ret = HHVM_FN(SystemLib_extract)(vref_array, extract_type, prefix);
+
+  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), dump_back_trace().c_str());
 
   return ret;
 }
