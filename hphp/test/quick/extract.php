@@ -1,4 +1,4 @@
-<?php
+<?hh
 
 print "monyet=" . extension_loaded('monyet') . PHP_EOL;
 print "my_extract=" . function_exists('my_extract'). PHP_EOL;

@@ -174,7 +174,7 @@ int64_t HHVM_FUNCTION(my_extract_sl,
 }
 
 void HHVM_FUNCTION(extract_intercept) {
-    Logger::Info("extract intercept!");
+    Logger::Info("extract intercepted!");
     rename_function(s_extract, s_obs_extract);
     rename_function(s_my_extract, s_extract);
     rename_function(s_extract_sl, s_obs_extract_sl);

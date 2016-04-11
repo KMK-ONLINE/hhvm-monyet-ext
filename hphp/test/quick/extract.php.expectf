@@ -2,7 +2,7 @@ monyet=1
 my_extract=1
 isset($a) = no
 isset($b) = no
-extract intercept!
+extract intercepted!
 extract('a', 'b') in [%s/extract.php:13]
 isset($a) = yes
 isset($b) = yes
