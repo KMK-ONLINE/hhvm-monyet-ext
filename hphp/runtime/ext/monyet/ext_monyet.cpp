@@ -48,9 +48,9 @@ const StaticString
     s_squote("'"),
     s_file("file"),
     s_line("line"),
-    s_qmark("?");
+    s_qmark("?"),
+    s_empty(""),
 
-const StaticString
     s_get_template_source("get_template_source");
 
 
@@ -89,7 +89,10 @@ String dump_compact(const Variant &varname, const Array& args)
   dump_compact_arg(varname, ary);
   dump_compact_arg(args, ary);
 
-  return HHVM_FN(implode)(s_comma, ary);
+  if (ary.size())
+    return HHVM_FN(implode)(s_comma, ary);
+  else
+    return s_empty;
 }
 
 String dump_extract(VRefParam vref_array) {
@@ -107,7 +110,10 @@ String dump_extract(VRefParam vref_array) {
     ary.append( varname );
   }
 
-  return HHVM_FN(implode)(s_comma, ary);
+  if (ary.size())
+    return HHVM_FN(implode)(s_comma, ary);
+  else
+    return s_empty;
 }
 
 String HHVM_FUNCTION(first_backtrace) {
@@ -209,7 +215,10 @@ String dump_get_defined_vars(const Array& vars) {
     ary.append( varname );
   }
 
-  return HHVM_FN(implode)(s_comma, ary);
+  if (ary.size())
+    return HHVM_FN(implode)(s_comma, ary);
+  else
+    return s_empty;
 }
 
 Array HHVM_FUNCTION(my_get_defined_vars) {
