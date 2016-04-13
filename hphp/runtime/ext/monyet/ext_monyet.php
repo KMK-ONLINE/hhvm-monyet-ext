@@ -1,6 +1,9 @@
 <?hh
 
 <<__Native>>
+function first_backtrace(): string;
+
+<<__Native>>
 function compact_intercept(): void;
 
 <<__Native>>
@@ -30,3 +33,20 @@ function my_get_defined_vars(): array;
 
 <<__Native>>
 function my_get_defined_vars_sl(): array;
+
+
+function get_template_source(string $scriptfile): string
+{
+  if (preg_match("/\/[0-9a-z]+(\.php)?$/", $scriptfile)) {
+    $f = fopen($scriptfile, 'r');
+    $hhtag = fgets($f);
+    if (preg_match("/^<\?(php|hh)/", $hhtag)) {
+      $src = fgets($f);
+      if (preg_match("/\/\* source: (.+) \*\//", $src, $m)) {
+        return $m[1];
+      }
+    }
+    fclose($f);
+  }
+  return "";
+}

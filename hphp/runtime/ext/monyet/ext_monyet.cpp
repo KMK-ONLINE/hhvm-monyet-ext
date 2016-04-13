@@ -11,6 +11,7 @@
 #include "hphp/runtime/ext/std/ext_std_errorfunc.h"
 #include "hphp/runtime/ext/string/ext_string.h"
 #include "hphp/runtime/ext/std/ext_std_variable.h"
+#include "hphp/runtime/ext/fb/ext_fb.h"
 #include "hphp/util/logger.h"
 
 #include <vector>
@@ -49,6 +50,9 @@ const StaticString
     s_line("line"),
     s_qmark("?");
 
+const StaticString
+    s_get_template_source("get_template_source");
+
 
 // declaration of:
 // hphp/runtime/ext/std/ext_std_variable.cpp
@@ -64,6 +68,7 @@ int64_t HHVM_FUNCTION(SystemLib_extract,
 Array HHVM_FUNCTION(get_defined_vars);
 
 Array HHVM_FUNCTION(SystemLib_get_defined_vars);
+
 
 //////
 static void dump_compact_arg(const Variant& var, Array& ary) {
@@ -105,7 +110,7 @@ String dump_extract(VRefParam vref_array) {
   return HHVM_FN(implode)(s_comma, ary);
 }
 
-String dump_back_trace() {
+String HHVM_FUNCTION(first_backtrace) {
   StringBuffer buf;
   Array bt = HHVM_FN(debug_backtrace)(k_DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
 
@@ -113,9 +118,24 @@ String dump_back_trace() {
     Array frame = it.second().toArray();
 
     if (frame.exists(s_file)) {
-      buf.append(frame->get(s_file).toString());
-      buf.append(':');
-      buf.append(frame->get(s_line).toString());
+      String scriptname = frame->get(s_file).toString();
+
+      Array params;
+      params.append(scriptname);
+
+      Array fret = HHVM_FN(fb_call_user_func_safe)(s_get_template_source, params);
+      String templatename = fret[1].toString();
+      if (!templatename.empty()) {
+        buf.append(templatename);
+        buf.append(" -> ");
+      }
+
+      buf.append(scriptname);
+
+      if (frame.exists(s_line)) {
+        buf.append(":");
+        buf.append(frame->get(s_line).toString());
+      }
     }
   }
 
@@ -127,7 +147,7 @@ Array HHVM_FUNCTION(my_compact,
                     const Array& args /* = null array */) {
   Array ret = HHVM_FN(compact)(varname, args);
 
-  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), dump_back_trace().c_str());
+  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return ret;
 }
@@ -137,7 +157,7 @@ Array HHVM_FUNCTION(my_compact_sl,
                     const Array& args /* = null array */) {
   Array ret = HHVM_FN(__SystemLib_compact_sl)(varname, args);
 
-  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), dump_back_trace().c_str());
+  Logger::Info("compact(%s) in [%s]", dump_compact(varname, args).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return ret;
 }
@@ -156,7 +176,7 @@ int64_t HHVM_FUNCTION(my_extract,
                       const String& prefix /* = "" */) {
   int64_t ret = HHVM_FN(extract)(vref_array, extract_type, prefix);
 
-  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), dump_back_trace().c_str());
+  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return ret;
 }
@@ -168,7 +188,7 @@ int64_t HHVM_FUNCTION(my_extract_sl,
 
   int64_t ret = HHVM_FN(SystemLib_extract)(vref_array, extract_type, prefix);
 
-  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), dump_back_trace().c_str());
+  Logger::Info("extract(%s) in [%s]", dump_extract(vref_array).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return ret;
 }
@@ -195,7 +215,7 @@ String dump_get_defined_vars(const Array& vars) {
 Array HHVM_FUNCTION(my_get_defined_vars) {
   Array vars = HHVM_FN(get_defined_vars)();
 
-  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), dump_back_trace().c_str());
+  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return vars;
 }
@@ -203,7 +223,7 @@ Array HHVM_FUNCTION(my_get_defined_vars) {
 Array HHVM_FUNCTION(my_get_defined_vars_sl) {
   Array vars = HHVM_FN(SystemLib_get_defined_vars)();
 
-  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), dump_back_trace().c_str());
+  Logger::Info("get_defined_vars(%s) in [%s]", dump_get_defined_vars(vars).c_str(), HHVM_FN(first_backtrace)().c_str());
 
   return vars;
 }
@@ -233,6 +253,8 @@ class MonyetExtension : public Extension {
     HHVM_FE(get_defined_vars_intercept);
     HHVM_FE(my_get_defined_vars);
     HHVM_FE(my_get_defined_vars_sl);
+
+    HHVM_FE(first_backtrace);
 
     loadSystemlib();
   }

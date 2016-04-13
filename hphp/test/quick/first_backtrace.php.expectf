@@ -1,0 +1,7 @@
+monyet=1
+first_backtrace=1
+%s/a.php
+%s/a.php:4
+%s/b.php
+/some/where/i/belong.php -> %s/b.php:5
+

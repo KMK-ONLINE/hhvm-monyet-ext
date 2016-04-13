@@ -1,0 +1,7 @@
+monyet=1
+get_template_source=1
+0.txt = ''
+1.php = 'satu.php'
+2.php = 'dua.php'
+3.php = ''
+4 = 'no-ext'
